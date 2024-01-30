@@ -19,7 +19,7 @@ grep(char *pattern, int fd)
     buf[m] = '\0';
     p = buf;
     while((q = strchr(p, '\n')) != 0){
-      *q = 0;
+      *q = 0;//将*p由\n变为0
       if(match(pattern, p)){
         *q = '\n';
         write(1, p, q+1 - p);
@@ -27,7 +27,7 @@ grep(char *pattern, int fd)
       p = q+1;
     }
     if(m > 0){
-      m -= p - buf;
+      m -= p - buf;//m的值也发生变化了
       memmove(buf, p, m);
     }
   }
@@ -40,7 +40,7 @@ main(int argc, char *argv[])
   char *pattern;
 
   if(argc <= 1){
-    fprintf(2, "usage: grep pattern [file ...]\n");
+    fprintf(2, "usage: grep pattern [file ...]\n");//告诉用户如何正确使用grep命令
     exit(1);
   }
   pattern = argv[1];

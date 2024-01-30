@@ -79,10 +79,10 @@ runcmd(struct cmd *cmd)
     fprintf(2, "exec %s failed\n", ecmd->argv[0]);
     break;
 
-  case REDIR:
+  case REDIR: //te:见课本p10 cat < input.txt
     rcmd = (struct redircmd*)cmd;
-    close(rcmd->fd);
-    if(open(rcmd->file, rcmd->mode) < 0){
+    close(rcmd->fd);//释放rcmd的输入参数 fd文件描述符
+    if(open(rcmd->file, rcmd->mode) < 0){//将进程的文件输入IO重定向至rcmd->file,其中mode决定是输入0还是输出1
       fprintf(2, "open %s failed\n", rcmd->file);
       exit(1);
     }
@@ -97,7 +97,7 @@ runcmd(struct cmd *cmd)
     runcmd(lcmd->right);
     break;
 
-  case PIPE:
+  case PIPE://见课本p12
     pcmd = (struct pipecmd*)cmd;
     if(pipe(p) < 0)
       panic("pipe");
@@ -106,7 +106,7 @@ runcmd(struct cmd *cmd)
       dup(p[1]);
       close(p[0]);
       close(p[1]);
-      runcmd(pcmd->left);
+      runcmd(pcmd->left);//子进程连接管道左端
     }
     if(fork1() == 0){
       close(0);

@@ -194,7 +194,8 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_sleep\
-#添加了sleep
+	$U/_pingpong\
+#添加了_pingpong,注意不要使用空格，用Tab键
 
 
 

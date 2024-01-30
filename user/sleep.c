@@ -11,6 +11,5 @@ main(int argc,char *argv[])
     }
     int number = atoi(argv[1]);
     sleep(number);
-    fprintf(1,"sleep %d\n", number);
     exit(0);
 }

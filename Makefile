@@ -195,7 +195,8 @@ UPROGS=\
 	$U/_zombie\
 	$U/_sleep\
 	$U/_pingpong\
-#添加了_pingpong,注意不要使用空格，用Tab键
+	$U/_primes\
+#添加了_primes,注意不要使用空格，用Tab键
 
 
 

@@ -197,7 +197,8 @@ UPROGS=\
 	$U/_pingpong\
 	$U/_primes\
 	$U/_find\
-#添加了_find,注意不要使用空格，用Tab键
+	$U/_xargs\
+#添加了_xargs,注意不要使用空格，用Tab键
 
 
 

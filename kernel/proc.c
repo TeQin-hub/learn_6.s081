@@ -211,6 +211,10 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 
 // a user program that calls exec("/init")
 // od -t xC initcode
+//存储用户程序的机器码
+//执行效果是调用 exec("/init")
+//最后几个字节包含的是字符串 "/init" 的 ASCII 表示，以及一个 NULL 字符（0x00），用于作为参数传递给 exec 函数
+//在这里，initcode 的目的就是启动 /init 程序，进而启动整个用户态环境。
 uchar initcode[] = {
   0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x45, 0x02,
   0x97, 0x05, 0x00, 0x00, 0x93, 0x85, 0x35, 0x02,
@@ -227,24 +231,33 @@ userinit(void)
 {
   struct proc *p;
 
-  p = allocproc();
-  initproc = p;
+  p = allocproc();//调用 allocproc() 函数来分配一个新的进程结构体，并将其地址赋给 p
+  initproc = p;//initproc 是一个全局指针，用于指向 xv6 中的初始进程。
   
   // allocate one user page and copy init's instructions
   // and data into it.
+  //调用 uvminit() 函数，该函数用于初始化用户虚拟内存。它将 initcode 中的指令和数据复制到新进程的用户地址空间。
   uvminit(p->pagetable, initcode, sizeof(initcode));
-  p->sz = PGSIZE;
+  /*
+    当新进程被调度运行时，它会从程序计数器（epc）指定的地址开始执行，这里设置为 0。
+    因此，新进程会从地址 0 开始执行，这正是 initcode 被复制到的位置。
+    所以，当新进程开始运行时，它实际上是在执行 initcode 中的代码。
+  */
+
+  p->sz = PGSIZE;//设置新进程的大小为一页（PGSIZE），表示该进程的内存空间从 0 到 PGSIZE
 
   // prepare for the very first "return" from kernel to user.
+  //设置新进程的 trapframe（中断帧）中的程序计数器（epc）为 0，表示新进程的执行将从用户程序的起始位置开始。
+  //设置新进程的 trapframe 中的栈指针（sp）为 PGSIZE，表示用户栈的起始位置。
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
 
-  safestrcpy(p->name, "initcode", sizeof(p->name));
-  p->cwd = namei("/");
+  safestrcpy(p->name, "initcode", sizeof(p->name));//安全地复制字符串 "initcode" 到新进程的名称字段中
+  p->cwd = namei("/");//设置新进程的当前工作目录（cwd）为根目录
 
-  p->state = RUNNABLE;
+  p->state = RUNNABLE;//设置新进程的状态为 RUNNABLE，表示它已经准备好被调度执行。
 
-  release(&p->lock);
+  release(&p->lock);//释放新进程的锁，允许其他进程访问该进程的数据结构
 }
 
 // Grow or shrink user memory by n bytes.

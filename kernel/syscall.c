@@ -7,19 +7,27 @@
 #include "syscall.h"
 #include "defs.h"
 
+/*
+这两个函数的目的是通过页表（pagetable）从进程的内存中获取数据，确保操作的合法性，以及处理复制失败的情况。
+在操作系统中，由于不同进程的虚拟地址空间是隔离的，因此需要通过页表来进行虚拟地址到物理地址的映射。
+这样的操作是系统调用和用户空间代码之间进行数据传递的基础。
+*/
 // Fetch the uint64 at addr from the current process.
+//addr 表示要获取数据的地址
 int
 fetchaddr(uint64 addr, uint64 *ip)
 {
   struct proc *p = myproc();
   if(addr >= p->sz || addr+sizeof(uint64) > p->sz)
     return -1;
+    
   if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
+  //该函数负责从进程的页表 p->pagetable 中复制数据到指定的地址 ip
     return -1;
   return 0;
 }
 
-// Fetch the nul-terminated string at addr from the current process.
+// Fetch the nul-terminated(空字符结尾) string at addr from the current process.
 // Returns length of string, not including nul, or -1 for error.
 int
 fetchstr(uint64 addr, char *buf, int max)
@@ -32,7 +40,7 @@ fetchstr(uint64 addr, char *buf, int max)
 }
 
 static uint64
-argraw(int n)
+argraw(int n)//
 {
   struct proc *p = myproc();
   switch (n) {
@@ -57,7 +65,7 @@ argraw(int n)
 int
 argint(int n, int *ip)
 {
-  *ip = argraw(n);
+  *ip = argraw(n);//指针 ip 用于存储获取到的参数值。
   return 0;
 }
 
@@ -74,13 +82,14 @@ argaddr(int n, uint64 *ip)
 // Fetch the nth word-sized system call argument as a null-terminated string.
 // Copies into buf, at most max.
 // Returns string length if OK (including nul), -1 if error.
+//接受三个参数，整数 n 表示第几个系统调用参数，字符数组 buf 用于存储获取到的字符串，整数 max 表示最大复制的长度。
 int
 argstr(int n, char *buf, int max)
 {
   uint64 addr;
-  if(argaddr(n, &addr) < 0)
+  if(argaddr(n, &addr) < 0)//获取字符串的地址
     return -1;
-  return fetchstr(addr, buf, max);
+  return fetchstr(addr, buf, max);//从用户空间将字符串复制到内核空间，返回复制的字符串长度。失败返回-1
 }
 
 extern uint64 sys_chdir(void);
@@ -105,6 +114,10 @@ extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
 
+//这是一个包含函数指针的数组，用于映射系统调用号（syscall number）到相应的系统调用处理函数。
+//数组的索引就是这个系统调用号,数组中的每个元素都是一个指向返回类型为 uint64 的函数的指针
+//当用户程序发起一个系统调用时，内核会根据系统调用号查找对应的处理函数，然后执行这个处理函数来完成相应的操作
+//syscalls[SYS_fork] 就是数组 syscalls 中存储了处理 SYS_fork 类型系统调用的函数指针的地方
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -133,9 +146,9 @@ void
 syscall(void)
 {
   int num;
-  struct proc *p = myproc();
+  struct proc *p = myproc();//获取当前进程结构体指针
 
-  num = p->trapframe->a7;
+  num = p->trapframe->a7;//得到系统调用号
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     p->trapframe->a0 = syscalls[num]();
   } else {

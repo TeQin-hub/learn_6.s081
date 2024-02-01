@@ -82,27 +82,34 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
-// Per-process state
+// Per-process state进程的结构体
 struct proc {
   struct spinlock lock;
+  /*用于保护这个进程结构体的互斥锁。在多线程或多进程环境中，
+    当一个进程访问或修改这个结构体时，需要先获得这个锁，
+    以防止其他进程同时进行访问导致数据不一致。
 
-  // p->lock must be held when using these:
-  enum procstate state;        // Process state
-  void *chan;                  // If non-zero, sleeping on chan
-  int killed;                  // If non-zero, have been killed
-  int xstate;                  // Exit status to be returned to parent's wait
-  int pid;                     // Process ID
+    父子进程通信：当父进程希望等待子进程的完成时，它需要访问子进程的信息，例如子进程的状态和退出状态。
+    进程调度：调度器可能需要查看系统中所有进程的状态
+  */
+
+  // p->lock must be held when using these: p 是 struct proc 的一个实例，即一个进程的实例
+  enum procstate state;        // Process state：运行（RUNNING） 就绪（RUNNABLE） 睡眠（SLEEPING）
+  void *chan;                  // If non-zero, sleeping on chan非零，表示进程正在等待某个通道（channel），即睡眠状态
+  int killed;                  // If non-zero, have been killed非零，表示进程已经被杀死
+  int xstate;                  // Exit status to be returned to parent's wait用于存储进程退出时的状态，将会返回给父进程的 wait 系统调用
+  int pid;                     // Process ID进程的唯一标识符，即进程 ID。
 
   // wait_lock must be held when using this:
-  struct proc *parent;         // Parent process
+  struct proc *parent;         // Parent process指向父进程的指针。
 
   // these are private to the process, so p->lock need not be held.
-  uint64 kstack;               // Virtual address of kernel stack
-  uint64 sz;                   // Size of process memory (bytes)
-  pagetable_t pagetable;       // User page table
-  struct trapframe *trapframe; // data page for trampoline.S
-  struct context context;      // swtch() here to run process
-  struct file *ofile[NOFILE];  // Open files
-  struct inode *cwd;           // Current directory
-  char name[16];               // Process name (debugging)
+  uint64 kstack;               // Virtual address of kernel stack进程的内核栈的虚拟地址
+  uint64 sz;                   // Size of process memory (bytes)进程内存的大小，以字节为单位
+  pagetable_t pagetable;       // User page table用户页表，用于将用户虚拟地址映射到物理地址
+  struct trapframe *trapframe; // data page for trampoline.S指向存储中断帧（trap frame）的结构体的指针，用于保存进程的状态（PC、寄存器、栈指针等），用于恢复进程的执行状态
+  struct context context;      // swtch() here to run process用于保存进程上下文的结构体，包括 CPU 寄存器的状态等
+  struct file *ofile[NOFILE];  // Open files进程打开的文件数组，每个元素是一个指向文件结构体的指针
+  struct inode *cwd;           // Current directory当前工作目录的指针
+  char name[16];               // Process name (debugging)进程的名字，用于调试目的
 };

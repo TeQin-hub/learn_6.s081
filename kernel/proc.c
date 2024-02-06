@@ -43,6 +43,7 @@ proc_mapstacks(pagetable_t kpgtbl) {
 }
 
 // initialize the proc table at boot time.
+//这段代码在系统启动时为每个进程结构初始化了相应的锁和内核栈
 void
 procinit(void)
 {
@@ -52,7 +53,7 @@ procinit(void)
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
-      p->kstack = KSTACK((int) (p - proc));
+      p->kstack = KSTACK((int) (p - proc));//根据进程在 proc 数组中的索引计算出内核栈的起始地址
   }
 }
 
@@ -669,4 +670,22 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+//add lab2 sysinfo 计算状态不是UNUSED的线程数量
+uint64
+nproc(void)
+{
+  struct proc *p;
+  uint64 num = 0;
+  for(p=proc;p<&proc[NPROC];p++)
+  {
+    acquire(&p->lock);
+    if(p->state != UNUSED)
+    {
+      num++;
+    }
+    release(&p->lock);
+  }
+  return num;
 }

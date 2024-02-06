@@ -18,8 +18,14 @@ struct run {
   struct run *next;
 };
 
+/*
+kmem 可以被理解为内核内存管理的结构，包含了一个自旋锁和一个空闲页面链表。
+这种结构通常在内核中用于协调对共享资源的访问，以及管理可用的物理内存页面。
+*/
 struct {
+  //自旋锁是一种轻量级的锁，它不会引起线程阻塞，而是在获取锁失败时一直自旋等待。这是一种常用于内核的锁机制。
   struct spinlock lock;
+  //这个链表被用作内存分配的空闲列表，存储着可用的物理内存页面。
   struct run *freelist;
 } kmem;
 
@@ -65,18 +71,36 @@ kfree(void *pa)
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
+//实现了从内核的内存池中分配一页物理内存的操作
 void *
 kalloc(void)
 {
   struct run *r;
 
-  acquire(&kmem.lock);
-  r = kmem.freelist;
+  acquire(&kmem.lock);//确保在对内存池进行操作时是原子的，防止多个线程同时访问导致的竞态条件。
+  r = kmem.freelist;//将 kmem.freelist 指向的第一个空闲页面取出，赋值给 r。
   if(r)
-    kmem.freelist = r->next;
-  release(&kmem.lock);
+    kmem.freelist = r->next;//取下第一个空闲页面
+  release(&kmem.lock);//释放内存管理结构的锁，允许其他线程再次访问内存池。
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
+}
+
+//add lab2sysinfo 空闲的内核内存
+uint64
+free_mem(void)
+{
+  struct run *r;
+  uint64 num = 0;
+  acquire(&kmem.lock);
+  r=kmem.freelist;
+  while(r)
+  {
+    num++;
+    r=r->next;
+  }
+  release(&kmem.lock);
+  return num*PGSIZE;
 }

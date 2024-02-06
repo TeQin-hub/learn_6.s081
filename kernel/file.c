@@ -84,6 +84,9 @@ fileclose(struct file *f)
 
 // Get metadata about file f.
 // addr is a user virtual address, pointing to a struct stat.
+//使用addr用户空间的虚拟地址，来接收一个指向struct stat结构体的指针
+//函数用于在用户空间中获取文件的元数据信息，将其填充到用户提供的 struct stat 结构体中。
+//函数首先判断文件类型，然后获取文件元数据信息，并通过 copyout 函数将这些信息复制到用户空间addr中。
 int
 filestat(struct file *f, uint64 addr)
 {

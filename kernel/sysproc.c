@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"//add
 
 uint64
 sys_exit(void)
@@ -96,7 +97,7 @@ sys_uptime(void)
   return xticks;
 }
 
-//add
+//add lab2trace 传递mask参数
 uint64
 sys_trace(void)
 {
@@ -106,5 +107,28 @@ sys_trace(void)
     return -1;
   }
   myproc()->tracemask |= trace_sys_mask;
+  return 0;
+}
+
+//add lab2sysinfo 
+uint64
+sys_sysinfo(void)
+{
+  uint64 addr;//uint64可以存储一个指针
+  struct sysinfo info;
+  struct proc *p = myproc();
+
+  if(argaddr(0,&addr)<0)
+  {
+    return -1;
+  }
+
+  info.freemem=free_mem();
+  info.nproc=nproc();
+  
+  if(copyout(p->pagetable,addr,(char *)&info,sizeof(info))<0)
+  {
+    return -1;
+  }
   return 0;
 }

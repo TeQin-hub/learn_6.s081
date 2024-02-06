@@ -44,3 +44,4 @@ entry("uptime");
 
 #add
 entry("trace");
+entry("sysinfo");

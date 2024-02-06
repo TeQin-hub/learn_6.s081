@@ -26,7 +26,7 @@ argfd(int n, int *pfd, struct file **pf)
 
   if(argint(n, &fd) < 0)
     return -1;
-  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
+  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)//确保它在有效的范围内且对应的文件结构指针不为空。
     return -1;
   if(pfd)
     *pfd = fd;
@@ -104,12 +104,18 @@ sys_close(void)
   return 0;
 }
 
+/*
+ 这段代码实现了通过系统调用获取文件状态信息的功能。
+ 它从用户空间获取文件描述符和指向用户 struct stat 结构体的指针，
+ 然后调用 filestat 函数填充用户提供的结构体。
+*/
 uint64
 sys_fstat(void)
 {
   struct file *f;
   uint64 st; // user pointer to struct stat
 
+  //argfd从系统调用的第0参数，读文件描述符0，文件结构指针。
   if(argfd(0, 0, &f) < 0 || argaddr(1, &st) < 0)
     return -1;
   return filestat(f, st);

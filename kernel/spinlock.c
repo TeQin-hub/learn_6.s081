@@ -12,8 +12,8 @@ void
 initlock(struct spinlock *lk, char *name)
 {
   lk->name = name;
-  lk->locked = 0;
-  lk->cpu = 0;
+  lk->locked = 0;//int 0，表示没有线程持有该锁
+  lk->cpu = 0;//空指针
 }
 
 // Acquire the lock.

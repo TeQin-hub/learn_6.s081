@@ -113,7 +113,8 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
-extern uint64 sys_trace(void);
+extern uint64 sys_trace(void);//add
+extern uint64 sys_sysinfo(void);//add
 //这是一个包含函数指针的数组，用于映射系统调用号（syscall number）到相应的系统调用处理函数。
 //数组的索引就是这个系统调用号,数组中的每个元素都是一个指向返回类型为 uint64 的函数的指针
 //当用户程序发起一个系统调用时，内核会根据系统调用号查找对应的处理函数，然后执行这个处理函数来完成相应的操作
@@ -141,6 +142,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_trace]   sys_trace,
+[SYS_sysinfo] sys_sysinfo,
 };
 
 static char *sysname[] = {
@@ -167,6 +169,7 @@ static char *sysname[] = {
   "mkdir",
   "close",
   "trace",
+  "sysinfo",
 };
 
 void

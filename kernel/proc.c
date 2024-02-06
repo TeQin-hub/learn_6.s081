@@ -106,6 +106,7 @@ allocproc(void)
 {
   struct proc *p;
 
+//遍历proc找到一个未使用的p
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
@@ -140,6 +141,7 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+  p->tracemask = 0;//add 新的进程默认不追踪
 
   return p;
 }
@@ -286,7 +288,7 @@ int
 fork(void)
 {
   int i, pid;
-  struct proc *np;
+  struct proc *np;//孩子
   struct proc *p = myproc();
 
   // Allocate process.
@@ -318,9 +320,9 @@ fork(void)
 
   pid = np->pid;
 
-  release(&np->lock);
+  release(&np->lock);//释放子进程的锁，使其它线程可以访问该进程结构
 
-  acquire(&wait_lock);
+  acquire(&wait_lock);//获取全局的 wait_lock 锁，以确保在更新父子关系时是原子的
   np->parent = p;
   release(&wait_lock);
 
@@ -328,6 +330,7 @@ fork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
+  np->tracemask = p->tracemask;//add fork出的新进程继承父进程的bit mask
   return pid;
 }
 

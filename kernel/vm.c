@@ -77,24 +77,61 @@ kvminithart()
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
+// 如果在查找的过程中某一级的页表项不存在（即 *pte & PTE_V 为假），并且需要分配新的页表页（alloc 为真），
+//则动态分配一个新的页表页。这样可以在需要时延迟分配内存，而不是一开始就为整个地址空间分配所有的页表页。
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
   if(va >= MAXVA)
-    panic("walk");
+    panic("walk");//宕机（panic）条件，表示程序进入了一个无法恢复的错误状态。
 
-  for(int level = 2; level > 0; level--) {
+//通过一个循环迭代，从页表的高级别向低级别逐步查找页表项。RISC-V Sv39 模式下有三个级别的页表。
+  for(int level = 2; level > 0; level--) {//Level-2 是最宽范围的
+    /*
+     PX(level, va) 是一个宏，用于计算给定级别 level 和虚拟地址 va 的页表项在当前级别页表中的索引
+     &pagetable[PX(level, va)] 表示取得页表中索引为 PX(level, va) 的页表项的地址
+     pte 是一个指向虚拟地址 va 在给定级别 level 的页表项的指针。可以通过 pte 来读取或修改该页表项的内容。
+    */
     pte_t *pte = &pagetable[PX(level, va)];
-    if(*pte & PTE_V) {
+
+    if(*pte & PTE_V) {//页表项存在且有效
+      //pagetable 被更新为下一级页表的物理地址，以便继续迭代查找。
       pagetable = (pagetable_t)PTE2PA(*pte);
-    } else {
+    } else {//如果页不存在看是否alloc创建新的页
+      /*
+       alloc 为0，表示不需要分配新的页表页，用于指示是否需要分配内存。
+       || 是逻辑或运算符，表示或者。如果前面的条件 !alloc 为真，那么整个条件语句就为真，不再执行后续的操作
+       alloc 为真，那么将执行 pagetable = (pde_t*)kalloc()。这行代码的目的是分配内核空间，用于存储新的页表页。
+       kalloc() 是一个函数，用于从内核空间分配一块页面大小的内存。
+       == 0 是比较操作符，用于检查是否成功分配内存。如果分配失败，kalloc() 将返回0，此时整个条件语句为真，表示分配失败。
+
+       如果不需要分配新的页表页（!alloc 为真），或者尝试分配新的页表页但分配失败（kalloc() 返回0），则返回0，
+       表示无法创建新的页表页。这样的设计可以用于避免在某些情况下分配内存失败时继续执行可能导致错误的操作。
+      */
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
+
+      /*
+       memset 用于将 pagetable 指向的内存块的内容全部设置为0。
+       pagetable：指向内存块的指针，即要被设置的起始地址
+       PGSIZE：要设置的字节数，即内存块的大小。
+      */
       memset(pagetable, 0, PGSIZE);
+
+      /*
+       PA2PTE(pagetable)：这是一个宏或函数，用于将一个物理地址 pagetable 转换为页表项格式。
+       具体的实现可能会将物理地址左移12位，并设置其他位的标志，以创建一个符合页表项格式的值。
+
+       PTE_V：这是页表项中的一个标志，表示有效位（Valid）。将该标志设置为1表示该页表项对应的映射是有效的。
+
+       |：位运算中的按位或操作符，将上述两个值按位进行或运算，得到一个组合了有效位和转换后的物理地址的新页表项值。
+
+       *pte 这个页表项设置为指向 新分配的页表 页的物理地址，并将有效位标志设置为1，表示建立了有效的映射。
+      */
       *pte = PA2PTE(pagetable) | PTE_V;
     }
   }
-  return &pagetable[PX(0, va)];
+  return &pagetable[PX(0, va)];//返回指向虚拟地址对应的页表项的指针，是最底层的页表中的页表项
 }
 
 // Look up a virtual address, return the physical address,
@@ -103,19 +140,31 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 uint64
 walkaddr(pagetable_t pagetable, uint64 va)
 {
+  //指向页表项的指针 pte 和用于存储物理地址的变量 pa
   pte_t *pte;
   uint64 pa;
 
+//检查虚拟地址 va MAXVA 是一个常量，代表了虚拟地址的上限
   if(va >= MAXVA)
     return 0;
 
+//walk 函数查找虚拟地址 va 对应的页表项。walk 函数通常用于在页表中进行查找，并返回指向页表项的指针
   pte = walk(pagetable, va, 0);
+
+//检查页表项的有效性。如果找不到页表项 (pte == 0) 
+//或者找到的页表项中 PTE_V 标志（有效位）被清零，表示虚拟地址未映射，函数返回 0。
   if(pte == 0)
     return 0;
   if((*pte & PTE_V) == 0)
     return 0;
+
+//如果页表项中 PTE_U 标志（用户权限位）被清零，
+//表示这是一个内核空间的地址，而不是用户空间的地址，函数返回 0
   if((*pte & PTE_U) == 0)
     return 0;
+
+//如果通过以上检查，说明虚拟地址有效且已映射到物理地址。
+//通过宏 PTE2PA 从页表项中提取出物理地址，并返回该物理地址。
   pa = PTE2PA(*pte);
   return pa;
 }
@@ -394,22 +443,29 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 // Copy bytes to dst from virtual address srcva in a given page table,
 // until a '\0', or max.
 // Return 0 on success, -1 on error.
+//pagetable是页表，dst是目标内核缓冲区的指针，srcva是用户空间的虚拟地址(在pagetable页表中)，max是最大允许复制的字节数
 int
 copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 {
+  //n（要复制的字节数）、va0（虚拟地址对应的页面的起始地址）、pa0（虚拟地址对应的页面的物理地址）
+  //got_null（用于标记是否已经复制到null字符）
   uint64 n, va0, pa0;
   int got_null = 0;
 
   while(got_null == 0 && max > 0){
+    //获取当前虚拟地址所在页面的起始地址和对应的物理地址
     va0 = PGROUNDDOWN(srcva);
     pa0 = walkaddr(pagetable, va0);
-    if(pa0 == 0)
+
+    if(pa0 == 0)//如果物理地址为0，表示页面不存在或不可访问，返回错误码-1
       return -1;
+
+    //计算页面还剩多少内容可以复制，如果n大于max，则是复制max的内容，如果n小于max，则在本页先复制n个内容
     n = PGSIZE - (srcva - va0);
     if(n > max)
       n = max;
 
-    char *p = (char *) (pa0 + (srcva - va0));
+    char *p = (char *) (pa0 + (srcva - va0));//将物理地址对应的缓冲区转换为字符指针
     while(n > 0){
       if(*p == '\0'){
         *dst = '\0';
@@ -424,7 +480,7 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
       dst++;
     }
 
-    srcva = va0 + PGSIZE;
+    srcva = va0 + PGSIZE;//更新srcva，指向下一个页面的起始地址
   }
   if(got_null){
     return 0;

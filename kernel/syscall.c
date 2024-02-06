@@ -22,7 +22,7 @@ fetchaddr(uint64 addr, uint64 *ip)
     return -1;
     
   if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
-  //该函数负责从进程的页表 p->pagetable 中复制数据到指定的地址 ip
+  //该函数负责从进程的页表 p->pagetable 中复制数据到指定的地址 ip;内核读入数据
     return -1;
   return 0;
 }
@@ -113,7 +113,7 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
-
+extern uint64 sys_trace(void);
 //这是一个包含函数指针的数组，用于映射系统调用号（syscall number）到相应的系统调用处理函数。
 //数组的索引就是这个系统调用号,数组中的每个元素都是一个指向返回类型为 uint64 的函数的指针
 //当用户程序发起一个系统调用时，内核会根据系统调用号查找对应的处理函数，然后执行这个处理函数来完成相应的操作
@@ -140,6 +140,33 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_trace]   sys_trace,
+};
+
+static char *sysname[] = {
+  "",//系统调用号从1开始，所以需要一个空字符串占位
+  "fork",
+  "exit",
+  "wait",
+  "pipe",
+  "read",
+  "kill",
+  "exec",
+  "fstat",
+  "chdir",
+  "dup",
+  "getpid",
+  "sbrk",
+  "sleep",
+  "uptime",
+  "open",
+  "write",
+  "mknod",
+  "unlink",
+  "link",
+  "mkdir",
+  "close",
+  "trace",
 };
 
 void
@@ -150,7 +177,12 @@ syscall(void)
 
   num = p->trapframe->a7;//得到系统调用号
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    p->trapframe->a0 = syscalls[num]();
+    p->trapframe->a0 = syscalls[num]();//通过调用 syscalls[num](); 函数，把返回值保存在了 a0 寄存器中
+
+    //add
+    if(p->tracemask & (1 << num)){
+      printf("%d: syscall %s -> %d\n",p->pid,sysname[num],p->trapframe->a0);
+    }
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);

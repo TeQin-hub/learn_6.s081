@@ -112,4 +112,5 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files进程打开的文件数组，每个元素是一个指向文件结构体的指针
   struct inode *cwd;           // Current directory当前工作目录的指针
   char name[16];               // Process name (debugging)进程的名字，用于调试目的
+  uint64 tracemask;            //add 跟踪
 };

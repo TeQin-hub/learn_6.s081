@@ -116,6 +116,10 @@ exec(char *path, char **argv)
   p->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
 
+  //add lab3 print page table
+  if(p->pid == 1)
+    vmprint(p->pagetable);
+    
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
  bad:
@@ -128,7 +132,7 @@ exec(char *path, char **argv)
   return -1;
 }
 
-// Load a program segment into pagetable at virtual address va.
+// Load a program segment(程序段) into pagetable at virtual address va.
 // va must be page-aligned
 // and the pages from va to va+sz must already be mapped.
 // Returns 0 on success, -1 on failure.

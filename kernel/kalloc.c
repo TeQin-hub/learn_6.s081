@@ -14,6 +14,7 @@ void freerange(void *pa_start, void *pa_end);
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
 
+//空闲页链表元素
 struct run {
   struct run *next;
 };
@@ -29,6 +30,7 @@ struct {
   struct run *freelist;
 } kmem;
 
+//通过调用freerange来添加内存到空闲链表
 void
 kinit()
 {
@@ -40,8 +42,8 @@ void
 freerange(void *pa_start, void *pa_end)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint64)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+  p = (char*)PGROUNDUP((uint64)pa_start);//向上舍入到最近的页面边界
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)//与kfree配合，将空闲页插入到空闲链表（头插法）
     kfree(p);
 }
 
@@ -49,6 +51,7 @@ freerange(void *pa_start, void *pa_end)
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when
 // initializing the allocator; see kinit above.)
+//用于释放一个指向物理内存页面的指针所指向的内存页，并将其添加到内存空闲列表中
 void
 kfree(void *pa)
 {
@@ -58,11 +61,12 @@ kfree(void *pa)
     panic("kfree");
 
   // Fill with junk to catch dangling refs.
+  //将要释放的物理内存页填充为特定的值，以便检测悬空引用。这个操作通常被称为"poisoning"，用于在释放内存后避免悬空引用
   memset(pa, 1, PGSIZE);
 
-  r = (struct run*)pa;
+  r = (struct run*)pa;//将物理地址pa转换为结构体run的指针
 
-  acquire(&kmem.lock);
+  acquire(&kmem.lock);//获取内核内存锁
   r->next = kmem.freelist;
   kmem.freelist = r;
   release(&kmem.lock);
@@ -71,6 +75,7 @@ kfree(void *pa)
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
+//物理内存分配器
 //实现了从内核的内存池中分配一页物理内存的操作
 void *
 kalloc(void)

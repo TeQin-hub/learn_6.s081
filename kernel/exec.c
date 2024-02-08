@@ -12,29 +12,39 @@ static int loadseg(pde_t *pgdir, uint64 addr, struct inode *ip, uint offset, uin
 int
 exec(char *path, char **argv)
 {
-  char *s, *last;
-  int i, off;
-  uint64 argc, sz = 0, sp, ustack[MAXARG], stackbase;
-  struct elfhdr elf;
-  struct inode *ip;
-  struct proghdr ph;
-  pagetable_t pagetable = 0, oldpagetable;
+  char *s, *last;//用于处理字符串相关操作
+  int i, off;//循环计数和文件偏移量等操作
+  uint64 argc, sz = 0, sp, ustack[MAXARG], stackbase;//整型数组 ustack，用于存储参数信息
+  struct elfhdr elf;//用于存储 ELF 文件的头部信息
+  struct inode *ip;//指向打开的文件的 inode
+  struct proghdr ph;//存储 ELF 文件的程序头信息
+  pagetable_t pagetable = 0, oldpagetable;//pagetable 和 oldpagetable，用于存储当前进程的页表和旧页表
   struct proc *p = myproc();
 
-  begin_op();
+  begin_op();//开始一个文件系统操作，这是一个文件系统的原语，用于确保文件系统操作的原子性
 
+/*
+ 使用路径 path 查找相应的文件，获取其 inode。
+ 如果文件不存在或查找失败，则立即结束文件系统操作，并返回错误
+*/
   if((ip = namei(path)) == 0){
     end_op();
     return -1;
   }
-  ilock(ip);
+  ilock(ip);//锁定文件的 inode，确保在访问文件元数据时不会发生竞态条件
 
+/*
+ 读取 ELF 文件头，并检查是否成功读取。
+ 如果读取失败，跳转到 bad 标签，表示发生了错误。
+ 这两个检查主要是识别文件是否符合 ELF 文件格式
+*/
   // Check ELF header
   if(readi(ip, 0, (uint64)&elf, 0, sizeof(elf)) != sizeof(elf))
     goto bad;
   if(elf.magic != ELF_MAGIC)
     goto bad;
 
+//获取当前进程的页表
   if((pagetable = proc_pagetable(p)) == 0)
     goto bad;
 

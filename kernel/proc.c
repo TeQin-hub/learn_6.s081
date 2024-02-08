@@ -272,11 +272,13 @@ growproc(int n)
   struct proc *p = myproc();
 
   sz = p->sz;
-  if(n > 0){
+  if(n > 0){//增大进程内存
+  //uvmalloc 函数会在当前进程的页表中为新增的内存空间建立映射。如果分配失败，则返回-1表示失败。
     if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
       return -1;
     }
   } else if(n < 0){
+  //uvmdealloc 函数会在当前进程的页表中取消对应部分内存空间的映射
     sz = uvmdealloc(p->pagetable, sz, sz + n);
   }
   p->sz = sz;

@@ -127,6 +127,14 @@ found:
     return 0;
   }
 
+  //add 给进程p的usyscall分配一个物理页面，并进行初始化，usyscall中pid的值等于p->pid
+  if((p->usyscallpage = (struct usyscall *)kalloc()) == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  p->usyscallpage->pid = p->pid;
+
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -153,6 +161,12 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
+
+  //add 释放物理页
+  if(p->usyscallpage)
+    kfree((void*)p->usyscallpage);
+  p->usyscallpage = 0;
+
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
@@ -196,6 +210,14 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
+  //add USYSCALL映射到p->usyscallpage 虚拟地址映射到物理地址
+  if(mappages(pagetable,USYSCALL,PGSIZE,
+              (uint64)(p->usyscallpage), PTE_R | PTE_U) < 0){
+    uvmunmap(pagetable, TRAMPOLINE, 1, 0);//uvmunmap取消虚拟到物理的映射 即使得*pte = 0
+    uvmunmap(pagetable, TRAPFRAME, 1, 0);
+    uvmfree(pagetable,0);//删除页表，将空闲页表重现插入到空闲链表中
+    return 0;
+  }
   return pagetable;
 }
 
@@ -206,6 +228,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  uvmunmap(pagetable,USYSCALL,1,0);//add 取消虚拟地址的映射  *pte = 0;
   uvmfree(pagetable, sz);
 }
 

@@ -105,4 +105,6 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  struct usyscall *usyscallpage; //add lab3 speed up 指向物理页面（目的） （映射的USYSCALL页面（虚拟地址，源））
 };

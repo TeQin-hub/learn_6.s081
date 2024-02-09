@@ -56,8 +56,10 @@ pgaccess_test()
   printf("pgaccess_test starting\n");
   testname = "pgaccess_test";
   buf = malloc(32 * PGSIZE);
-  if (pgaccess(buf, 32, &abits) < 0)
+  if (pgaccess(buf, 32, &abits) < 0)//pgaccess函数将buf页面的PTE_A全置为0
     err("pgaccess failed");
+  
+  //访问页面1、2、30，加载到内存中进行修改，使得页面1、2、30的PTE_A置为1
   buf[PGSIZE * 1] += 1;
   buf[PGSIZE * 2] += 1;
   buf[PGSIZE * 30] += 1;

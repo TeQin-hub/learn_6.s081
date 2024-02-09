@@ -81,6 +81,24 @@ int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+  uint64 startaddr;//用户的虚拟页面空间
+  int npage;//虚拟页面空间 页数
+  uint64 useraddr;//接收bitmask(位掩码)的 在用户空间的虚拟地址
+  argaddr(0,&startaddr);
+  argint(1,&npage);
+  argaddr(2,&useraddr);
+
+  uint64 bitmask = 0;
+  uint64 complement = ~PTE_A;//complement表示pgaccess操作结束了，需要将被操作的页面的访问位PTE_A重新置为0
+  struct proc *p = myproc();
+  for(int i=0;i<npage;++i){
+    pte_t *pte = walk(p->pagetable,startaddr + i*PGSIZE,0);
+    if(*pte & PTE_A){
+      bitmask |= (1<<i);
+      *pte &= complement;
+    }
+  }
+  copyout(p->pagetable,useraddr,(char *)&bitmask,sizeof(bitmask));
   return 0;
 }
 #endif

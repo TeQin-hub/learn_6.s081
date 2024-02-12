@@ -69,6 +69,9 @@ sys_sleep(void)
     }
     sleep(&ticks, &tickslock);
   }
+
+  backtrace();//add lab4-traps Backtrace
+  
   release(&tickslock);
   return 0;
 }

@@ -114,6 +114,9 @@ w_mie(uint64 x)
 // supervisor exception program counter, holds the
 // instruction address to which a return from
 // exception will go.
+//“监管者异常程序计数器”，指的是在发生异常时用于保存返回地址的寄存器
+//“保存从异常返回的指令地址”，说明了该寄存器的作用，它会存储异常处理程序返回的指令地址，
+//以便在异常处理完成后恢复到正常的程序执行流程中。
 static inline void 
 w_sepc(uint64 x)
 {
@@ -160,6 +163,7 @@ w_mideleg(uint64 x)
 
 // Supervisor Trap-Vector Base Address
 // low two bits are mode.
+//内核在这里写下 trap 处理程序的地址； RISC-V 到这里来处理 trap
 static inline void 
 w_stvec(uint64 x)
 {
@@ -215,6 +219,8 @@ r_satp()
 }
 
 // Supervisor Scratch register, for early trap handler in trampoline.S.
+//“监管者临时寄存器”通常用于临时存储数据或者地址。这个寄存器在处理早期陷阱（trap）处理程序时在 trampoline.S 中被使用
+//内核在这里放置了一个值， 这个值会方便 trap 恢复/储存用户上下文
 static inline void 
 w_sscratch(uint64 x)
 {
@@ -228,6 +234,7 @@ w_mscratch(uint64 x)
 }
 
 // Supervisor Trap Cause
+//RISC -V 在这里放了一个数字，描述了 trap 的原因
 static inline uint64
 r_scause()
 {
@@ -298,6 +305,16 @@ r_sp()
   asm volatile("mv %0, sp" : "=r" (x) );
   return x;
 }
+
+//add lab4-traps Backtrace
+static inline uint64
+r_fp()
+{
+  uint64 x;
+  asm volatile("mv %0, s0" : "=r" (x));
+  return x;
+}
+
 
 // read and write tp, the thread pointer, which holds
 // this core's hartid (core number), the index into cpus[].

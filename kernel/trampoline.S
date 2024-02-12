@@ -22,10 +22,11 @@ uservec:
         #
         # sscratch points to where the process's p->trapframe is
         # mapped into user space, at TRAPFRAME.
-        #
+        # sscratch(虚拟地址)指向进程的p->trapframe映射到用户空间的位置，即TRAPFRAME
         
 	# swap a0 and sscratch
         # so that a0 is TRAPFRAME
+        # 把a0的值与sscratch值进行交换
         csrrw a0, sscratch, a0
 
         # save the user registers in TRAPFRAME
@@ -61,6 +62,7 @@ uservec:
         sd t6, 280(a0)
 
 	# save the user a0 in p->trapframe->a0
+        # 因为在uservec代码的开始，将用户的a0保存到了临时寄存器sscratch中
         csrr t0, sscratch
         sd t0, 112(a0)
 
@@ -93,11 +95,14 @@ userret:
         # a1: user page table, for satp.
 
         # switch to the user page table.
+        # 将用户页表地址 a1 写入 satp 控制寄存器，以切换到用户空间的地址空间。
+        # 然后使用 sfence.vma 指令刷新 TLB（翻译后备缓冲区），确保新的页表设置生效。
         csrw satp, a1
         sfence.vma zero, zero
 
         # put the saved user a0 in sscratch, so we
         # can swap it with our a0 (TRAPFRAME) in the last step.
+        # 将保存在 TRAPFRAME 中的用户态 a0 寄存器值加载到临时寄存器 t0 中，然后将其写入 sscratch 寄存器
         ld t0, 112(a0)
         csrw sscratch, t0
 
@@ -138,4 +143,6 @@ userret:
         
         # return to user mode and user pc.
         # usertrapret() set up sstatus and sepc.
+        # 使用 sret 指令返回到用户模式，并从用户态的 sepc 寄存器中加载下一条指令的地址以继续用户程序的执行。
+        # usertrapret 函数负责设置 sstatus 和 sepc 寄存器以确保正确的上下文切换。
         sret

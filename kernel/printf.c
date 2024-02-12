@@ -132,3 +132,19 @@ printfinit(void)
   initlock(&pr.lock, "pr");
   pr.locking = 1;
 }
+
+//add lab4-traps Backtrace
+void
+backtrace(void)
+{
+  //sp指向栈的底部（即低位），栈由高向低增长
+  uint64 fp = r_fp();//指向该栈帧的栈顶（即高位）
+  printf("backtrace\n");
+  uint64 ret_addr;
+  while((PGROUNDUP(fp) - PGROUNDDOWN(fp)) == PGSIZE){
+    //取出fp的值时，要先转为指针，再解除指针拿到里面的值，因为fp本身是一个地址，不能直接用
+    ret_addr = *((uint64*)(fp-8));
+    printf("%p\n",ret_addr);
+    fp = *((uint64*)(fp-16));
+  }
+}

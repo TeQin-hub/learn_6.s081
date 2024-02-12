@@ -43,8 +43,10 @@ usertrap(void)
 
   // send interrupts and exceptions to kerneltrap(),
   // since we're now in the kernel.
+  //kernelvec，它会调用 kerneltrap 函数来处理中断。即处理了来自内核的trap。处理完后会返回到trap.c继续执行后续代码
   w_stvec((uint64)kernelvec);
-
+  
+  //后面的就是处理来自用户的trap了
   struct proc *p = myproc();
   
   // save user program counter.
@@ -58,6 +60,10 @@ usertrap(void)
 
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
+    /*
+     在系统调用发生后，用户程序计数器（epc）指向的是系统调用指令的地址，而不是下一条指令的地址。
+     因此，为了跳转到下一条指令，需要将用户程序计数器（epc）的值增加一个指令的长度，即加 4(字节)。
+    */
     p->trapframe->epc += 4;
 
     // an interrupt will change sstatus &c registers,
@@ -80,6 +86,7 @@ usertrap(void)
   if(which_dev == 2)
     yield();
 
+//恢复用户态的上下文，并返回到用户程序中继续执行
   usertrapret();
 }
 

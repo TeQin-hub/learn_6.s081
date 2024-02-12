@@ -303,18 +303,21 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
+  char *mem; // 指向分配内存的指针
 
+// 以页面大小（PGSIZE）的步长迭代内存范围sz
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
-      panic("uvmcopy: pte should exist");
+      panic("uvmcopy: pte should exist");// 如果页表项不存在，则发出panic
     if((*pte & PTE_V) == 0)
-      panic("uvmcopy: page not present");
+      panic("uvmcopy: page not present");// 如果页面不存在，则发出panic
     pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
+    flags = PTE_FLAGS(*pte);// 从页表项中提取标志
     if((mem = kalloc()) == 0)
       goto err;
+    // 将物理内存地址‘pa’的内容复制到分配的内存中
     memmove(mem, (char*)pa, PGSIZE);
+    // 将分配的内存映射到新的页表中，虚拟地址为‘i’，标志为给定的标志
     if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
       kfree(mem);
       goto err;
@@ -323,6 +326,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   return 0;
 
  err:
+ // 如果发生错误，则取消映射新页表中的所有已映射页面
   uvmunmap(new, 0, i / PGSIZE, 1);
   return -1;
 }

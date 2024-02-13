@@ -119,9 +119,22 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  //add lab4-traps alarm
+  p->passticks = 0;
+  p->ticks = 0;
+  p->handler = 0;
+
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+
+  //add lab4-traps alarm 
+  //Allocate a timer_trapframe page
+  if((p->time_trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
     release(&p->lock);
     return 0;
@@ -153,6 +166,12 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
+  
+  //add lab4-traps alarm
+  if(p->time_trapframe)
+    kfree((void*)p->time_trapframe);
+  p->time_trapframe = 0;
+
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
@@ -164,6 +183,12 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  //add lab4-traps alarm
+  p->passticks = 0;
+  p->ticks = 0;
+  p->handler = 0;//将handler置为nullptr
+  p->handler_execute = 0;//handler no executing
 }
 
 // Create a user page table for a given process,

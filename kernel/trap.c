@@ -83,8 +83,17 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2){
+    //add lab4-traps alarm
+    p->passticks += 1;
+    if(p->handler_execute == 0 && p->ticks != 0 && p->passticks == p->ticks){
+      p->handler_execute =1;//避免重复进入
+      memmove(p->time_trapframe,p->trapframe,sizeof(struct trapframe));//注意不要使用p->timer_trapframe = p->trapframe，它只能获得地址，而不是内容
+      p->trapframe->epc = (uint64)p->handler;
+      p->passticks = 0;
+    }
     yield();
+  }
 
 //恢复用户态的上下文，并返回到用户程序中继续执行
   usertrapret();

@@ -105,4 +105,11 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  //add lab4-traps alarm
+  int ticks;                   //n个ticks后，alarm一下
+  void (*handler)();           //处理函数
+  int passticks;               //从执行完handler后现在有多少个ticks了
+  struct trapframe *time_trapframe;//保存寄存器的值，在sigret中恢复
+  int handler_execute;         //handler executing ->1  handler no excuting -> 0
 };

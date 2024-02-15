@@ -16,6 +16,34 @@ void kernelvec();
 
 extern int devintr();
 
+//add lab5-cow
+//为子进程的va分配一个新的物理页mem
+//成功0，失败-1
+int 
+cow_page(uint64 va,pagetable_t pagetable)
+{
+  if(va >= MAXVA) return -1;//注意检查边界
+  pte_t *pte = walk(pagetable,va,0);
+  if(pte == 0 || (*pte & (PTE_V)) == 0 || (*pte & (PTE_U)) == 0) return -1;//注意检查边界条件
+  uint64 pa = PTE2PA(*pte);
+  uint flags = PTE_FLAGS(*pte);
+
+  char *mem;
+
+  if(flags & PTE_W) return 0;
+
+  if(!(flags & PTE_COW)) return -1;//如果不是PTE_COW返回-1
+
+  flags |= PTE_W;
+  flags &= (~PTE_COW);
+
+  if((mem = kalloc()) == 0) return -1;
+  memmove(mem,(char*)pa,PGSIZE);
+  *pte = PA2PTE((uint64)mem) | flags;
+  kfree((void*)pa);
+  return 0;
+}
+
 void
 trapinit(void)
 {
@@ -67,6 +95,13 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+  } else if(r_scause() == 15){
+    //add lab5-cow
+    //发生page fault
+    if(cow_page(r_stval(),p->pagetable) == -1){
+      p->killed = 1;
+    }
+
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());

@@ -19,7 +19,7 @@
 // some have different meanings for
 // read vs write.
 // see http://byterunner.com/16550.html
-#define RHR 0                 // receive holding register (for input bytes)
+#define RHR 0                 // receive holding register (for input bytes)RHR寄存器在UATR0的偏移地址为0，即第一个寄存器
 #define THR 0                 // transmit holding register (for output bytes)
 #define IER 1                 // interrupt enable register
 #define IER_RX_ENABLE (1<<0)

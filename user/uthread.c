@@ -10,15 +10,48 @@
 #define STACK_SIZE  8192
 #define MAX_THREAD  4
 
+//add lab6-multithreading
+struct thread_context {
+  uint64 ra;
+  uint64 sp;
+
+  //callee-saved
+  uint64 s0;
+  uint64 s1;
+  uint64 s2;
+  uint64 s3;
+  uint64 s4;
+  uint64 s5;
+  uint64 s6;
+  uint64 s7;
+  uint64 s8;
+  uint64 s9;
+  uint64 s10;
+  uint64 s11;
+};
 
 struct thread {
   char       stack[STACK_SIZE]; /* the thread's stack */
   int        state;             /* FREE, RUNNING, RUNNABLE */
+  struct thread_context thread_context; //add lab6-multithread
 };
 struct thread all_thread[MAX_THREAD];
 struct thread *current_thread;
 extern void thread_switch(uint64, uint64);
-              
+
+//add lab6-multithread
+//模仿user/proc.c/allocproc
+void
+clear_thread(struct thread *t, void (*func)()){
+  memset((void *)&t->stack, 0, STACK_SIZE);
+  memset((void *)&t->thread_context, 0, sizeof(struct thread_context));
+  t->thread_context.sp = (uint64)((char *)&t->stack + STACK_SIZE);
+  //(char *)&t->stack,确保和STACK_SIZE相加，是以字节为单位进行的
+  //栈的生长方向为高地址向低地址增长，所以最开始sp指向数组的高地址
+
+  t->thread_context.ra = (uint64)func;//用户传入的参数
+}
+
 void 
 thread_init(void)
 {
@@ -54,6 +87,8 @@ thread_schedule(void)
     exit(-1);
   }
 
+  //线程a，b，c都会调用thread_schedule，全局变量current_thread可能指向a,b,c
+  //next_thread是即将转换的线程，即未来的current_thread，使用t保存现在的current_thread
   if (current_thread != next_thread) {         /* switch threads?  */
     next_thread->state = RUNNING;
     t = current_thread;
@@ -62,7 +97,11 @@ thread_schedule(void)
      * Invoke thread_switch to switch from t to next_thread:
      * thread_switch(??, ??);
      */
-  } else
+
+    //add lab6_multithread
+    thread_switch((uint64)&t->thread_context, (uint64)&current_thread->thread_context);
+  }
+  else
     next_thread = 0;
 }
 
@@ -76,6 +115,8 @@ thread_create(void (*func)())
   }
   t->state = RUNNABLE;
   // YOUR CODE HERE
+  //add lab6-multithread
+  clear_thread(t, func);
 }
 
 void 
@@ -151,12 +192,12 @@ thread_c(void)
 int 
 main(int argc, char *argv[]) 
 {
-  a_started = b_started = c_started = 0;
-  a_n = b_n = c_n = 0;
-  thread_init();
-  thread_create(thread_a);
+  a_started = b_started = c_started = 0;//定义全局变量线程，看线程是否启动
+  a_n = b_n = c_n = 0;//定义每个线程for的计数次数
+  thread_init();//对线程0(即main)进行初始化，使得scheduler不再调用main函数
+  thread_create(thread_a);//第一次运行a，要创建好ra和sp，类似于proc.c/allocproc函数
   thread_create(thread_b);
   thread_create(thread_c);
-  thread_schedule();
+  thread_schedule();//开始第一次调用，之后都是在线程a,b,c中使用该函数了
   exit(0);
 }

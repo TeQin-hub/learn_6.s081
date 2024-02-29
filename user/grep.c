@@ -43,7 +43,7 @@ main(int argc, char *argv[])
     fprintf(2, "usage: grep pattern [file ...]\n");//告诉用户如何正确使用grep命令
     exit(1);
   }
-  pattern = argv[1];
+  pattern = argv[1];//grep = argv[0]
 
   if(argc <= 2){
     grep(pattern, 0);

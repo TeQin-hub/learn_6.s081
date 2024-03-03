@@ -40,7 +40,6 @@ insert(int key, int value, struct entry **p, struct entry *n)
 }
 
 //add lab6-using pthread
-//对这个函数的修改就是增加四个锁操作
 static 
 void put(int key, int value)
 {  

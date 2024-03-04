@@ -40,10 +40,20 @@ barrier()
   //
   pthread_mutex_lock(&bstate.barrier_mutex);
   thread_flag = !thread_flag;
+  pthread_mutex_unlock(&bstate.barrier_mutex);
 
+  /*
+    这个while循环的目的是为了将不是第一轮的线程全部卡在这个while循环中，直到第一轮的最后一个线程到达，反转bstate.flag后，
+    最后一个线程会使用broadcast唤醒所有的睡眠线程，包括不是第一轮的线程，这些不是第一轮的线程被唤醒后，会继续while判断，
+    由于bstate.flag已经被反转，所以不符合条件，则第二轮的开始往下执行
+    虽然第三轮和第一轮的thread_flag会相同，但根据逻辑想一想，应该不可能有已经执行第三轮了，还有第一轮的线程会要barrier
+  */
   while(thread_flag == bstate.flag){
     pthread_cond_wait(&bstate.barrier_cond, &bstate.barrier_mutex);
   }
+  
+  //在合适的位置多几次加锁解锁，性能更好
+  pthread_mutex_lock(&bstate.barrier_mutex);
   int arrived = ++bstate.nthread;
   if (arrived == nthread){
     bstate.round++;
@@ -53,6 +63,7 @@ barrier()
   }else{
     pthread_cond_wait(&bstate.barrier_cond, &bstate.barrier_mutex);
   }
+  pthread_mutex_unlock(&bstate.barrier_mutex);
 }
 
 static void *

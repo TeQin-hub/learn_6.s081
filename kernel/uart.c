@@ -35,7 +35,9 @@
 #define LSR_RX_READY (1<<0)   // input is waiting to be read from RHR
 #define LSR_TX_IDLE (1<<5)    // THR can accept another character to send
 
+//读取指定寄存器的值
 #define ReadReg(reg) (*(Reg(reg)))
+//写入指定寄存器的值
 #define WriteReg(reg, v) (*(Reg(reg)) = (v))
 
 // the transmit output buffer.

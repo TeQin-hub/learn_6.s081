@@ -187,6 +187,7 @@ consoleinit(void)
 
   // connect read and write system calls
   // to consoleread and consolewrite.
+  //外部设备是键盘和显示器
   devsw[CONSOLE].read = consoleread;
   devsw[CONSOLE].write = consolewrite;
 }

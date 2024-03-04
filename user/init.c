@@ -16,6 +16,7 @@ main(void)
 {
   int pid, wpid;
 
+//console虚拟文件，计算机它通过读写这个文件实现与外部设备通信
   if(open("console", O_RDWR) < 0){
     mknod("console", CONSOLE, 0);
     open("console", O_RDWR);

@@ -82,7 +82,7 @@ get(int key)
 static void *
 put_thread(void *xa)
 {
-  int n = (int) (long) xa; // thread number
+  int n = (int) (long) xa; // thread number 线程序号
   int b = NKEYS/nthread;//每个线程需要处理的key个数
 
   for (int i = 0; i < b; i++) {

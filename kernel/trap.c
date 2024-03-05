@@ -205,6 +205,7 @@ devintr()
     // the PLIC allows each device to raise at most one
     // interrupt at a time; tell the PLIC the device is
     // now allowed to interrupt again.
+    //所以要将irq写入PLIC的某个寄存器，告诉PLIC这个终端已经完成，可以继续处理下一个了
     if(irq)
       plic_complete(irq);
 
@@ -219,6 +220,7 @@ devintr()
     
     // acknowledge the software interrupt by clearing
     // the SSIP bit in sip.
+    //通过清除 sip 寄存器中的 SSIP 位来确认软件中断。这样做的目的是告诉处理器软件中断已经被处理，可以继续执行其他指令了
     w_sip(r_sip() & ~2);
 
     return 2;

@@ -54,5 +54,7 @@ void
 plic_complete(int irq)
 {
   int hart = cpuid();
+
+  //通过写入 PLIC_SCLAIM 寄存器来告知 PLIC 我们已经服务了这个 IRQ。
   *(uint32*)PLIC_SCLAIM(hart) = irq;
 }

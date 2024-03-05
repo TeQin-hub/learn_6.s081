@@ -182,14 +182,16 @@ void
 uartintr(void)
 {
   // read and process incoming characters.
+  //一个一个的接受
   while(1){
     int c = uartgetc();
     if(c == -1)
       break;
-    consoleintr(c);
+    consoleintr(c);//处理不同的c，或者将c累计为一行处理
   }
 
   // send buffered characters.
+  //uartgetc得到不到字符了，即可以开始发送了
   acquire(&uart_tx_lock);
   uartstart();
   release(&uart_tx_lock);

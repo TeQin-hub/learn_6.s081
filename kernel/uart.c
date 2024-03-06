@@ -85,11 +85,13 @@ uartinit(void)
 // because it may block, it can't be called
 // from interrupts; it's only suitable for use
 // by write().
+//当写入进程调用系统调用写入数据时，它将数据写入输出缓冲区并立即返回，而不需要等待数据被发送到 UART。
 void
 uartputc(int c)
 {
   acquire(&uart_tx_lock);
 
+// 如果系统发生了 panic（严重错误），则进入死循环。
   if(panicked){
     for(;;)
       ;
@@ -103,6 +105,8 @@ uartputc(int c)
     } else {
       uart_tx_buf[uart_tx_w % UART_TX_BUF_SIZE] = c;
       uart_tx_w += 1;
+
+      // 开始发送串口数据。
       uartstart();
       release(&uart_tx_lock);
       return;

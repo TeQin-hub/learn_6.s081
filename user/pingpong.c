@@ -23,7 +23,7 @@ main(int argc,char *argv[])
         //子进程
         pid = getpid();
         close(pipes1[1]);
-        close(pipes2[0]);
+        //close(pipes2[0]);
         read(pipes1[0], buf, 1);
         printf("%d: received ping\n", pid);
         write(pipes2[1], buf, 1);
@@ -33,7 +33,7 @@ main(int argc,char *argv[])
     {
         //父进程
         pid = getpid();
-        close(pipes1[0]);
+        //close(pipes1[0]);
         close(pipes2[1]);
         write(pipes1[1], buf, 1);
         wait(0);//非常重要!!!否则会因为进程切换，导致输出乱序；父wait与子exit要成对出现

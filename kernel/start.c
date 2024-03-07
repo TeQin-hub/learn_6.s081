@@ -65,6 +65,7 @@ timerinit()
   int id = r_mhartid();
 
   // ask the CLINT for a timer interrupt.
+  //这行代码的作用是计算出下一个定时器中断的触发时间，并将其写入到 CLINT 中的定时器比较寄存器中，以便系统在该时间点触发定时器中断。
   int interval = 1000000; // cycles; about 1/10th second in qemu.
   *(uint64*)CLINT_MTIMECMP(id) = *(uint64*)CLINT_MTIME + interval;
 
@@ -72,6 +73,8 @@ timerinit()
   // scratch[0..2] : space for timervec to save registers.
   // scratch[3] : address of CLINT MTIMECMP register.
   // scratch[4] : desired interval (in cycles) between timer interrupts.
+  //这段代码的作用是准备一个数组 scratch，用于存储一些在定时器中断处理过程中需要使用的临时信息，
+  //并将其中的一些重要信息写入到 mscratch 寄存器中，以便在中断处理程序中能够访问这些信息。
   uint64 *scratch = &timer_scratch[id][0];
   scratch[3] = CLINT_MTIMECMP(id);
   scratch[4] = interval;

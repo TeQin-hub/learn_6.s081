@@ -160,6 +160,7 @@ consoleintr(int c)
       c = (c == '\r') ? '\n' : c;
 
       // echo back to the user.
+      // 回显给用户。将接收到的字符输出回控制台。
       consputc(c);
 
       // store for consumption by consoleread().

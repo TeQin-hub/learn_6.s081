@@ -52,8 +52,16 @@ void find(char *dir,char *file)
             continue;
         }
         memmove(p, de.name, DIRSIZ);
-        p[DIRSIZ] = 0;
-        if(stat(buf,&st)<0)
+        //p[DIRSIZ] = '\0';
+        // printf("p=%p\n", p);
+        // printf("/////\n");
+        // printf("p[DIRSIZ]=%p\n", &p[DIRSIZ]);
+        *(p + DIRSIZ)='\0';
+        // printf("/////\n");
+        // printf("p+=%p\n", p);
+        //*p = '\0';
+        // p++;
+        if (stat(buf, &st) < 0)
         {
             fprintf(2, "find:cannot stat %s", buf);
             continue;

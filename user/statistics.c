@@ -19,6 +19,7 @@ statistics(void *buf, int sz)
     }
     i += n;
   }
+  
   close(fd);
   return i;
 }

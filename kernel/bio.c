@@ -23,6 +23,8 @@
 #include "fs.h"
 #include "buf.h"
 
+
+//bcache 是一个包含了缓冲区数组 buf 和链表头部 head 的结构体
 struct {
   struct spinlock lock;
   struct buf buf[NBUF];
@@ -33,6 +35,8 @@ struct {
   struct buf head;
 } bcache;
 
+//访问 buffer 缓存是通过链表，而不是buf 数组。
+//这段代码的作用是初始化缓冲区链表。缓冲区链表是一个循环双向链表，其中 bcache.head 是链表的头节点。
 void
 binit(void)
 {
@@ -43,6 +47,7 @@ binit(void)
   // Create linked list of buffers
   bcache.head.prev = &bcache.head;
   bcache.head.next = &bcache.head;
+  //将buf数组转换为循环双向链表
   for(b = bcache.buf; b < bcache.buf+NBUF; b++){
     b->next = bcache.head.next;
     b->prev = &bcache.head;
@@ -60,6 +65,8 @@ bget(uint dev, uint blockno)
 {
   struct buf *b;
 
+
+//缓冲区的全局锁 bcache.lock，以确保在操作缓冲区链表时不会发生并发访问问题。
   acquire(&bcache.lock);
 
   // Is the block already cached?
@@ -125,6 +132,8 @@ brelse(struct buf *b)
   b->refcnt--;
   if (b->refcnt == 0) {
     // no one is waiting for it.
+    //只是从缓冲区链表中移除，并且重新插入到链表的头部
+    //但是数据内容并没有去掉，所以符合最近访问优先级，可能会有下一个进程引用这个buffer
     b->next->prev = b->prev;
     b->prev->next = b->next;
     b->next = bcache.head.next;

@@ -41,4 +41,8 @@ SECTIONS
   }
 
   PROVIDE(end = .);
+  /*
+  *在链接脚本(kernel.ld)中，使用 PROVIDE(end = .); 的语法可以告诉链接器（ld）将符号 end 的值定义为当前位置（.）的地址。
+  *
+  */
 }
